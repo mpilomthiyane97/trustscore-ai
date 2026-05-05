@@ -68,10 +68,14 @@ export const TrustScoreChat = () => {
       const reply = formatAssistantReply(result);
       setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", content: reply }]);
       speak(speakableReply(result));
-    } catch {
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? `Risk check failed: ${error.message}`
+          : "Something went wrong checking that number.";
       setMessages((m) => [
         ...m,
-        { id: crypto.randomUUID(), role: "assistant", content: "Something went wrong checking that number." },
+        { id: crypto.randomUUID(), role: "assistant", content: message },
       ]);
     } finally {
       setThinking(false);
