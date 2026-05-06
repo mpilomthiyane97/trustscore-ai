@@ -2,32 +2,17 @@ import { Request, Response, NextFunction } from "express";
 import {
   checkDeviceStatusDetailed,
   checkSimSwapDetailed,
-  createNumberVerificationAuthorizationLink,
   verifyLocationDetailed,
 } from "../services/telecom.service";
 import { calculateRisk } from "../services/riskEngine.service";
 import { addRiskLog, getLastRiskLogs } from "../services/logStore.service";
 import {
   checkNumberRiskSchema,
-  numberVerificationAuthorizationLinkSchema,
-  numberVerificationCallbackSchema,
 } from "../utils/validation";
 import { logInfo } from "../utils/logger";
 import {
   LocationVerificationInput,
-  PhoneRegistrationInsight,
 } from "../types/risk.types";
-
-const emptyRegistrationInsight: PhoneRegistrationInsight = {
-  registeredTo: null,
-  firstName: null,
-  lastName: null,
-  fullName: null,
-  carrierName: null,
-  lineType: null,
-  country: null,
-  rawAvailable: false,
-};
 
 export async function checkNumberRiskController(
   req: Request,
@@ -64,11 +49,10 @@ export async function checkNumberRiskController(
       simSwapRecent: simSwapInsight,
       newDevice: deviceInsight,
       locationAnomaly: locationInsight,
-      registration: emptyRegistrationInsight,
       capabilitiesUsed: [
-        "SIM swap check",
-        "Device status",
-        "Location verification",
+      "SIM swap check",
+      "Device status",
+      "Location verification",
       ],
     };
 
@@ -88,36 +72,6 @@ export async function checkNumberRiskController(
     });
 
     res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function createNumberVerificationAuthorizationLinkController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const payload = numberVerificationAuthorizationLinkSchema.parse(req.body);
-    const linkData = await createNumberVerificationAuthorizationLink(payload);
-    res.status(200).json(linkData);
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function numberVerificationCallbackController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const callbackData = numberVerificationCallbackSchema.parse(req.query);
-    res.status(200).json({
-      message: "Number verification callback received",
-      ...callbackData,
-    });
   } catch (error) {
     next(error);
   }

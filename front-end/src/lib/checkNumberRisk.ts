@@ -37,16 +37,6 @@ export interface RiskResponse {
       docsUrl?: string;
       endpointUrl?: string;
     };
-    registration?: {
-      registeredTo: string | null;
-      firstName: string | null;
-      lastName: string | null;
-      fullName: string | null;
-      carrierName: string | null;
-      lineType: string | null;
-      country: string | null;
-      rawAvailable: boolean;
-    };
     capabilitiesUsed: string[];
   };
 }

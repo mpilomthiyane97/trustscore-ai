@@ -8,24 +8,11 @@ export const phoneNumberSchema = z
 
 export const checkNumberRiskSchema = z.object({
   phoneNumber: phoneNumberSchema,
-  numberVerificationCode: z.string().trim().min(1).optional(),
-  numberVerificationState: z.string().trim().min(1).optional(),
   locationLatitude: z.number().min(-90).max(90).optional(),
   locationLongitude: z.number().min(-180).max(180).optional(),
   locationRadiusMeters: z.number().positive().optional(),
   locationMaxAgeSeconds: z.number().int().positive().optional(),
 }).superRefine((value, ctx) => {
-  const hasCode = Boolean(value.numberVerificationCode);
-  const hasState = Boolean(value.numberVerificationState);
-
-  if (hasCode !== hasState) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "numberVerificationCode and numberVerificationState must be provided together",
-      path: [hasCode ? "numberVerificationState" : "numberVerificationCode"],
-    });
-  }
-
   const locationFields = [
     value.locationLatitude,
     value.locationLongitude,
@@ -40,17 +27,6 @@ export const checkNumberRiskSchema = z.object({
       path: ["locationLatitude"],
     });
   }
-});
-
-export const numberVerificationAuthorizationLinkSchema = z.object({
-  phoneNumber: phoneNumberSchema,
-  redirectUri: z.string().url().optional(),
-  scope: z.string().trim().min(1).optional(),
-});
-
-export const numberVerificationCallbackSchema = z.object({
-  code: z.string().trim().min(1),
-  state: z.string().trim().min(1),
 });
 
 export type CheckNumberRiskInput = z.infer<typeof checkNumberRiskSchema>;

@@ -3,7 +3,7 @@ import { TrustScoreChat } from "@/components/TrustScoreChat";
 const Index = () => {
   return (
     <>
-      <h1 className="sr-only">TrustScore — Telecom Fraud Intelligence Demo</h1>
+      <h1 className="sr-only">TrustScore — Telecom Fraud Detection</h1>
       <TrustScoreChat />
     </>
   );

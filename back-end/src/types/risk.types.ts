@@ -19,28 +19,11 @@ export interface TelecomSignalInsight {
   endpointUrl?: string;
 }
 
-export interface PhoneRegistrationInsight {
-  registeredTo: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  fullName: string | null;
-  carrierName: string | null;
-  lineType: string | null;
-  country: string | null;
-  rawAvailable: boolean;
-}
-
 export interface TelecomInsights {
   simSwapRecent: TelecomSignalInsight;
   newDevice: TelecomSignalInsight;
   locationAnomaly: TelecomSignalInsight;
-  registration: PhoneRegistrationInsight;
   capabilitiesUsed: string[];
-}
-
-export interface NumberVerificationAuthInput {
-  code?: string;
-  state?: string;
 }
 
 export interface LocationVerificationInput {

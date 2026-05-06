@@ -1,5 +1,4 @@
 import {
-  PhoneRegistrationInsight,
   RecommendedAction,
   RiskCheckResponse,
   RiskLevel,
@@ -7,17 +6,6 @@ import {
   TelecomInsights,
   TelecomSignals,
 } from "../types/risk.types";
-
-const emptyRegistrationInsight: PhoneRegistrationInsight = {
-  registeredTo: null,
-  firstName: null,
-  lastName: null,
-  fullName: null,
-  carrierName: null,
-  lineType: null,
-  country: null,
-  rawAvailable: false,
-};
 
 function buildDefaultTelecomInsights(telecomSignals: TelecomSignals): TelecomInsights {
   return {
@@ -36,7 +24,6 @@ function buildDefaultTelecomInsights(telecomSignals: TelecomSignals): TelecomIns
       source: "provider",
       confidence: "LOW",
     },
-    registration: emptyRegistrationInsight,
     capabilitiesUsed: [],
   };
 }
@@ -62,7 +49,7 @@ export function calculateRisk(
       name: "SIM Swap",
       tells: "Was number recently reissued?",
       finding: telecomSignals.simSwapRecent
-        ? "SIM swap detected in the last 24 hours"
+        ? "SIM swap signal detected recently"
         : "No recent SIM swap detected",
       points: telecomSignals.simSwapRecent ? 40 : 0,
       maxPoints: 40,
@@ -71,8 +58,8 @@ export function calculateRisk(
       name: "Device Status",
       tells: "Is this a newly seen device?",
       finding: telecomSignals.newDevice
-        ? "New device detected"
-        : "Known trusted device",
+        ? "Device swap/new-device signal detected"
+        : "No recent device-swap signal detected",
       points: telecomSignals.newDevice ? 20 : 0,
       maxPoints: 20,
     },
@@ -80,8 +67,8 @@ export function calculateRisk(
       name: "Location Verification",
       tells: "Is location behavior unusual?",
       finding: telecomSignals.locationAnomaly
-        ? "Unusual location"
-        : "Location behavior appears normal",
+        ? "Location anomaly signal detected"
+        : "No location anomaly signal detected",
       points: telecomSignals.locationAnomaly ? 20 : 0,
       maxPoints: 20,
     },
@@ -98,8 +85,8 @@ export function calculateRisk(
     .filter((entry) => entry.points > 0)
     .map((entry) => {
       if (entry.name === "SIM Swap") return "SIM swap detected recently";
-      if (entry.name === "Device Status") return "New device detected";
-      return "Unusual location";
+      if (entry.name === "Device Status") return "Device swap/new-device signal detected";
+      return "Location anomaly signal detected";
     });
 
   if (signals.length === 0) {

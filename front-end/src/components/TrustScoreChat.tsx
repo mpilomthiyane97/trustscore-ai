@@ -90,25 +90,25 @@ export const TrustScoreChat = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-bg">
+    <div className="flex min-h-[100dvh] flex-col bg-gradient-bg">
       {/* Navbar */}
-      <header className="flex items-center justify-between border-b border-border/60 bg-background/80 px-6 py-4 backdrop-blur-md">
+      <header className="flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">
             <ShieldCheck className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-foreground">
+          <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
             Trust<span className="bg-gradient-primary bg-clip-text text-transparent">Score</span>
           </span>
         </div>
-        <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground sm:block">
-          Telecom Fraud Intelligence Demo
+        <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground md:block">
+          Telecom Fraud Detection Demo
         </span>
       </header>
 
       {/* Chat */}
-      <main ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8">
-        <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <main ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-8">
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 sm:gap-6">
           {messages.map((m) => (
             <ChatBubble key={m.id} role={m.role} content={m.content} />
           ))}
@@ -118,15 +118,15 @@ export const TrustScoreChat = () => {
 
       {/* Input bar */}
       <footer className="border-t border-border/60 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto max-w-3xl px-4 py-4">
-          <div className="flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-soft focus-within:ring-2 focus-within:ring-primary/40">
+        <div className="mx-auto max-w-3xl px-3 py-3 sm:px-4 sm:py-4">
+          <div className="flex items-end gap-1.5 rounded-xl border border-border bg-card p-1.5 shadow-soft focus-within:ring-2 focus-within:ring-primary/40 sm:gap-2 sm:rounded-2xl sm:p-2">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
               rows={1}
               placeholder="Type or speak a phone number…"
-              className="max-h-32 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="max-h-32 flex-1 resize-none bg-transparent px-2.5 py-2 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none sm:px-3 sm:text-sm"
             />
             <Button
               type="button"
@@ -135,7 +135,7 @@ export const TrustScoreChat = () => {
               onClick={listening ? stop : start}
               disabled={!supported}
               title={supported ? "Voice input" : "Speech recognition not supported"}
-              className="rounded-xl"
+              className="h-10 w-10 shrink-0 rounded-lg sm:rounded-xl"
             >
               {listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
@@ -144,13 +144,13 @@ export const TrustScoreChat = () => {
               size="icon"
               onClick={send}
               disabled={!input.trim() || thinking}
-              className="rounded-xl bg-gradient-primary text-primary-foreground hover:opacity-90"
+              className="h-10 w-10 shrink-0 rounded-lg bg-gradient-primary text-primary-foreground hover:opacity-90 sm:rounded-xl"
             >
               <Send className="h-5 w-5" />
             </Button>
           </div>
-          <p className="mt-3 text-center text-xs text-muted-foreground">
-            Powered by telecom network intelligence (SIM Swap, Device Status, Number Verification, Location Verification)
+          <p className="mt-3 px-1 text-center text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+            Powered by telecom network intelligence (SIM Swap, Device Status, Location Verification)
           </p>
         </div>
       </footer>

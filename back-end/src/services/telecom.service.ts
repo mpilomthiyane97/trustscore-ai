@@ -1,30 +1,13 @@
 import { env } from "../utils/env";
 import { logInfo } from "../utils/logger";
-import { randomUUID } from "node:crypto";
 import { HttpError } from "../utils/httpError";
 import {
   LocationVerificationInput,
-  NumberVerificationAuthInput,
-  PhoneRegistrationInsight,
   TelecomSignalInsight,
   TelecomSignalSource,
 } from "../types/risk.types";
 
-type SignalName = "simSwapRecent" | "numberVerified" | "newDevice" | "locationAnomaly";
-
-interface NumberVerificationAuthorizationLinkInput {
-  phoneNumber: string;
-  redirectUri?: string;
-  scope?: string;
-}
-
-interface NumberVerificationAuthorizationLinkResult {
-  authorizationUrl: string;
-  state: string;
-  redirectUri: string;
-  scope: string;
-  phoneNumber: string;
-}
+type SignalName = "simSwapRecent" | "newDevice" | "locationAnomaly";
 
 interface TelecomSignalFetchResult {
   value: boolean | undefined;
@@ -80,14 +63,6 @@ function extractBoolean(raw: unknown, signal: SignalName): boolean | undefined {
 
   const keyMap: Record<SignalName, string[]> = {
     simSwapRecent: ["simSwapRecent", "simSwap", "swappedRecently", "sim_swap_recent", "simSwapDetected", "swapped"],
-    numberVerified: [
-      "numberVerified",
-      "verified",
-      "ownershipVerified",
-      "number_verified",
-      "devicePhoneNumberVerified",
-      "device_phone_number_verified",
-    ],
     newDevice: ["newDevice", "isNewDevice", "new_device", "deviceNew", "swapped", "deviceSwapped", "device_swapped"],
     locationAnomaly: ["locationAnomaly", "locationMismatch", "location_anomaly", "anomaly"],
   };
@@ -136,8 +111,7 @@ function buildProviderRequestBody(signal: SignalName, phoneNumber: string): Reco
 function getSignalEndpointPath(signal: SignalName): string {
   if (signal === "simSwapRecent") return env.nokiaSimSwapPath;
   if (signal === "newDevice") return env.nokiaDeviceStatusPath;
-  if (signal === "locationAnomaly") return env.nokiaLocationVerifyPath;
-  return env.nokiaNumberVerifyPath;
+  return env.nokiaLocationVerifyPath;
 }
 
 async function callTelecomSignal(
@@ -289,70 +263,6 @@ function asStringOrNull(value: unknown): string | null {
   return normalized ? normalized : null;
 }
 
-function extractStringByKeys(source: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const value = asStringOrNull(source[key]);
-    if (value) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-function extractRegistrationInsight(rawResponse: unknown): PhoneRegistrationInsight {
-  const empty: PhoneRegistrationInsight = {
-    registeredTo: null,
-    firstName: null,
-    lastName: null,
-    fullName: null,
-    carrierName: null,
-    lineType: null,
-    country: null,
-    rawAvailable: false,
-  };
-
-  if (typeof rawResponse !== "object" || rawResponse === null) {
-    return empty;
-  }
-
-  const payload = rawResponse as Record<string, unknown>;
-  const fullName = extractStringByKeys(payload, [
-    "fullName",
-    "full_name",
-    "ownerName",
-    "owner_name",
-    "subscriberName",
-    "subscriber_name",
-    "registeredTo",
-    "registered_to",
-  ]);
-  const firstName = extractStringByKeys(payload, ["firstName", "first_name", "givenName"]);
-  const lastName = extractStringByKeys(payload, ["lastName", "last_name", "familyName"]);
-  const carrierName = extractStringByKeys(payload, [
-    "carrierName",
-    "carrier_name",
-    "operatorName",
-    "operator_name",
-  ]);
-  const lineType = extractStringByKeys(payload, ["lineType", "line_type", "numberType", "number_type"]);
-  const country = extractStringByKeys(payload, ["country", "countryCode", "country_code"]);
-  const registeredTo = fullName || [firstName, lastName].filter(Boolean).join(" ") || null;
-
-  return {
-    registeredTo,
-    firstName,
-    lastName,
-    fullName,
-    carrierName,
-    lineType,
-    country,
-    rawAvailable: Boolean(
-      registeredTo || firstName || lastName || fullName || carrierName || lineType || country
-    ),
-  };
-}
-
 let networkAsCodeClient: unknown;
 
 type NetworkAsCodeClientLike = {
@@ -360,7 +270,6 @@ type NetworkAsCodeClientLike = {
     get?: (input: { phoneNumber: string }) => {
       verifySimSwap?: (...args: unknown[]) => Promise<unknown>;
       getSimSwapDate?: () => Promise<unknown>;
-      verifyNumber?: (code: string, state: string) => Promise<unknown>;
       verifyLocation?: (
         latitude: number,
         longitude: number,
@@ -369,14 +278,6 @@ type NetworkAsCodeClientLike = {
       ) => Promise<unknown>;
       phoneNumber?: string;
     };
-  };
-  authorization?: {
-    createAuthorizationLink?: (
-      redirectUri: string,
-      scope: string,
-      loginHint: string,
-      state: string
-    ) => Promise<string>;
   };
 };
 
@@ -456,36 +357,6 @@ async function checkSimSwapWithSdk(phoneNumber: string): Promise<boolean | undef
     return undefined;
   } catch (error) {
     logInfo("Network as Code SIM swap check failed", {
-      phoneNumber,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return undefined;
-  }
-}
-
-async function verifyNumberWithSdk(
-  phoneNumber: string,
-  authInput?: NumberVerificationAuthInput
-): Promise<boolean | undefined> {
-  if (!authInput?.code || !authInput?.state) {
-    return undefined;
-  }
-
-  const client = await getNetworkAsCodeClient();
-  if (!client) {
-    return undefined;
-  }
-
-  try {
-    const device = (client as NetworkAsCodeClientLike).devices?.get?.({ phoneNumber });
-    if (!device?.verifyNumber) {
-      return undefined;
-    }
-
-    const result = await device.verifyNumber(authInput.code, authInput.state);
-    return typeof result === "boolean" ? result : undefined;
-  } catch (error) {
-    logInfo("Network as Code number verification failed", {
       phoneNumber,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -577,50 +448,6 @@ async function verifyLocationWithSdk(
   }
 }
 
-export async function createNumberVerificationAuthorizationLink(
-  input: NumberVerificationAuthorizationLinkInput
-): Promise<NumberVerificationAuthorizationLinkResult> {
-  const client = await getNetworkAsCodeClient();
-  if (!client) {
-    throw new Error("Network as Code SDK is not configured. Set NOKIA_APPLICATION_KEY and NOKIA_USE_SDK=true.");
-  }
-
-  const redirectUri =
-    input.redirectUri?.trim() || env.nokiaNumberVerificationRedirectUri.trim();
-  if (!redirectUri) {
-    throw new Error(
-      "Missing redirect URI. Provide redirectUri in request or configure NOKIA_NUMBER_VERIFICATION_REDIRECT_URI."
-    );
-  }
-
-  const scope =
-    input.scope?.trim() || env.nokiaNumberVerificationScope.trim();
-  if (!scope) {
-    throw new Error("Missing number verification scope.");
-  }
-
-  const state = randomUUID();
-  const createLink = (client as NetworkAsCodeClientLike).authorization?.createAuthorizationLink;
-  if (!createLink) {
-    throw new Error("Network as Code SDK authorization API is unavailable.");
-  }
-
-  const authorizationUrl = await createLink(
-    redirectUri,
-    scope,
-    input.phoneNumber,
-    state
-  );
-
-  return {
-    authorizationUrl,
-    state,
-    redirectUri,
-    scope,
-    phoneNumber: input.phoneNumber,
-  };
-}
-
 export async function checkSimSwap(phoneNumber: string): Promise<boolean> {
   const sdkValue = await checkSimSwapWithSdk(phoneNumber);
   const providerValue =
@@ -637,36 +464,6 @@ export async function checkSimSwapDetailed(phoneNumber: string): Promise<Telecom
       ? undefined
       : await callTelecomSignal("simSwapRecent", phoneNumber, env.nokiaSimSwapPath);
   return resolveSignal("simSwapRecent", sdkValue, providerValue);
-}
-
-export async function verifyNumberOwnership(
-  phoneNumber: string,
-  authInput?: NumberVerificationAuthInput
-): Promise<boolean> {
-  const sdkValue = await verifyNumberWithSdk(phoneNumber, authInput);
-  const providerValue =
-    typeof sdkValue === "boolean"
-      ? undefined
-      : await callTelecomSignal("numberVerified", phoneNumber, env.nokiaNumberVerifyPath);
-  return resolveSignal("numberVerified", sdkValue, providerValue).value;
-}
-
-export async function verifyNumberOwnershipDetailed(
-  phoneNumber: string,
-  authInput?: NumberVerificationAuthInput
-): Promise<{ signal: TelecomSignalInsight; registration: PhoneRegistrationInsight }> {
-  const sdkValue = await verifyNumberWithSdk(phoneNumber, authInput);
-  const providerResult = await callTelecomSignalDetailed(
-    "numberVerified",
-    phoneNumber,
-    env.nokiaNumberVerifyPath
-  );
-  const registration = extractRegistrationInsight(providerResult.rawResponse);
-
-  return {
-    signal: resolveSignal("numberVerified", sdkValue, providerResult.value),
-    registration,
-  };
 }
 
 export async function checkDeviceStatus(phoneNumber: string): Promise<boolean> {

@@ -37,8 +37,6 @@ Backend layers:
 - `GET /health`
 - `POST /api/check-number-risk` (requires `x-api-key`)
 - `GET /api/logs` (requires `x-api-key`)
-- `POST /api/number-verification/authorization-link` (requires `x-api-key`)
-- `GET /api/number-verification/callback`
 
 Main production/demo flow uses:
 
@@ -81,6 +79,70 @@ Recommended action:
 - `HIGH` -> `BLOCK`
 - `MEDIUM` -> `STEP_UP_VERIFICATION`
 - `LOW` -> `ALLOW`
+
+### 5.1 How Findings Are Derived From Nokia Boolean Signals
+
+The Nokia integrations are normalized to three booleans:
+
+- `simSwapRecent`
+- `newDevice`
+- `locationAnomaly`
+
+`breakdown.finding` strings are deterministic mappings from those booleans:
+
+- SIM Swap:
+	- `true` -> `SIM swap signal detected recently`
+	- `false` -> `No recent SIM swap detected`
+- Device Status:
+	- `true` -> `Device swap/new-device signal detected`
+	- `false` -> `No recent device-swap signal detected`
+- Location Verification:
+	- `true` -> `Location anomaly signal detected`
+	- `false` -> `No location anomaly signal detected`
+
+### 5.2 Raw Nokia API Data Before Normalization
+
+Below are representative raw response payloads received from Nokia sandbox endpoints before normalization:
+
+- SIM Swap endpoint (`/passthrough/camara/v1/sim-swap/sim-swap/v0/check`):
+
+```json
+{
+  "swapped": true
+}
+```
+
+- Device Status endpoint (`/passthrough/camara/v1/device-swap/device-swap/v1/check`):
+
+```json
+{
+  "swapped": true
+}
+```
+
+- Location Verification endpoint (`/location-verification/v1/verify`):
+
+```json
+{
+  "verificationResult": "FALSE",
+  "lastLocationTime": "2026-05-05T13:20:34.846720"
+}
+```
+
+Normalization rules applied in backend:
+
+- SIM Swap:
+	- raw `swapped: true` -> normalized `simSwapRecent: true`
+	- raw `swapped: false` -> normalized `simSwapRecent: false`
+- Device Status:
+	- raw `swapped: true` -> normalized `newDevice: true`
+	- raw `swapped: false` -> normalized `newDevice: false`
+- Location Verification:
+	- raw `verificationResult: "TRUE"` -> normalized `locationAnomaly: false`
+	- raw `verificationResult: "FALSE"` -> normalized `locationAnomaly: true`
+	
+
+
 
 ## 6. How Nokia APIs Were Implemented
 
@@ -155,20 +217,16 @@ Optional/auxiliary values in this repo:
 
 - `NOKIA_USE_SDK`
 - `NOKIA_APPLICATION_KEY`
-- `NOKIA_NUMBER_VERIFY_PATH`
-- `NOKIA_NUMBER_VERIFICATION_SCOPE`
-- `NOKIA_NUMBER_VERIFICATION_REDIRECT_URI`
 
-## 8. Number Verification Status in Current Demo
+## 8. Scope of Current Demo
 
-Number verification endpoints still exist, but the core risk scoring model currently does not use Number Verification points.
+The demo is intentionally focused on three stable telecom fraud signals:
 
-Why:
+- SIM swap
+- Device status
+- Location verification
 
-- The current demo focus is 3 stable Nokia telecom signals.
-- Number verification often requires consent/callback flow and can be less deterministic for quick hackathon demos.
-
-`telecomInsights.registration` is still returned with a null-safe object for response consistency.
+Number Verification and Registration enrichment were removed from runtime flow to keep responses deterministic and reduce upstream variability in sandbox mode.
 
 ## 9. Sandbox vs Real Numbers
 
