@@ -36,6 +36,10 @@ Do not commit secrets to git.
 5. Keep `CORS_ORIGIN` empty for now until frontend URL exists.
 6. Deploy.
 
+Important: if Render asks for a build command manually, use:
+
+`npm install --include=dev ; npm run build`
+
 After deploy, verify:
 - `GET https://<your-backend>.onrender.com/health` returns `{ "status": "OK" }`
 
