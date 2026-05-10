@@ -226,7 +226,7 @@ The demo is intentionally focused on three stable telecom fraud signals:
 - Device status
 - Location verification
 
-Number Verification and Registration enrichment were removed from runtime flow to keep responses deterministic and reduce upstream variability in sandbox mode.
+Registration enrichment is out of runtime scope to keep responses deterministic and reduce upstream variability in sandbox mode.
 
 ## 9. Sandbox vs Real Numbers
 

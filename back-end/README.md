@@ -45,7 +45,6 @@ npm start
 The telecom service supports real external API calls for:
 
 - SIM swap checks
-- Number ownership verification
 - Device status checks
 - Location anomaly checks
 
@@ -54,7 +53,6 @@ Set these variables in `.env` to enable provider calls:
 - `NOKIA_API_KEY`
 - `NOKIA_CAMARA_BASE_URL`
 - `NOKIA_SIM_SWAP_PATH`
-- `NOKIA_NUMBER_VERIFY_PATH`
 - `NOKIA_DEVICE_STATUS_PATH`
 - `NOKIA_LOCATION_VERIFY_PATH`
 - `NOKIA_RAPIDAPI_HOST` (optional, for RapidAPI)
@@ -76,48 +74,6 @@ Simulator numbers from Network as Code docs for SIM swap behavior:
 
 - `+99999991000` => SIM swap has occurred
 - `+99999991001` => SIM swap has not occurred
-
-### Number Verification via Network as Code SDK
-
-Number Verification is implemented with the SDK consent flow:
-
-1. Request authorization link from backend.
-2. Redirect end user on mobile network to the returned URL.
-3. Handle callback at `/api/number-verification/callback` and extract `code` + `state`.
-4. Submit those values with risk check request.
-
-Environment values:
-
-- `NOKIA_NUMBER_VERIFICATION_SCOPE` (default: `dpv:FraudPreventionAndDetection number-verification:verify`)
-- `NOKIA_NUMBER_VERIFICATION_REDIRECT_URI` (default: `http://localhost:4000/api/number-verification/callback`)
-
-Endpoints:
-
-- `POST /api/number-verification/authorization-link` (requires `x-api-key`)
-- `GET /api/number-verification/callback` (public redirect endpoint)
-
-Request for authorization link:
-
-```json
-{
-  "phoneNumber": "+99999991000"
-}
-```
-
-Risk-check request can now include optional Number Verification auth data:
-
-```json
-{
-  "phoneNumber": "+99999991000",
-  "numberVerificationCode": "authorization-code-from-callback",
-  "numberVerificationState": "state-from-callback"
-}
-```
-
-Simulator numbers from Network as Code docs for Number Verification:
-
-- `+99999991000` => verifies correctly
-- `+99999991001` => not verified
 
 ### Location Verification via Network as Code SDK
 
@@ -187,15 +143,27 @@ Response example:
   "riskLevel": "HIGH",
   "signals": [
     "SIM swap detected recently",
-    "New device detected",
-    "Unusual location"
+    "Device swap/new-device signal detected",
+    "Location anomaly signal detected"
   ],
   "breakdown": [
     {
       "name": "SIM Swap",
       "tells": "Was number recently reissued?",
-      "finding": "SIM swap detected in the last 24 hours",
+      "finding": "SIM swap signal detected recently",
       "points": 40
+    },
+    {
+      "name": "Device Status",
+      "tells": "Is this a newly seen device?",
+      "finding": "Device swap/new-device signal detected",
+      "points": 20
+    },
+    {
+      "name": "Location Verification",
+      "tells": "Is location behavior unusual?",
+      "finding": "Location anomaly signal detected",
+      "points": 20
     }
   ],
   "recommendedAction": "BLOCK",
@@ -205,11 +173,6 @@ Response example:
       "value": true,
       "source": "sdk",
       "confidence": "HIGH"
-    },
-    "numberVerified": {
-      "value": false,
-      "source": "provider",
-      "confidence": "MEDIUM"
     },
     "newDevice": {
       "value": true,
@@ -221,22 +184,10 @@ Response example:
       "source": "provider",
       "confidence": "MEDIUM"
     },
-    "registration": {
-      "registeredTo": "Jane Doe",
-      "firstName": "Jane",
-      "lastName": "Doe",
-      "fullName": "Jane Doe",
-      "carrierName": "Example Telecom",
-      "lineType": "mobile",
-      "country": "ZA",
-      "rawAvailable": true
-    },
     "capabilitiesUsed": [
       "SIM swap check",
-      "Number verification",
       "Device status",
-      "Location verification",
-      "Registration insight extraction"
+      "Location verification"
     ]
   }
 }
@@ -245,7 +196,6 @@ Response example:
 Notes:
 
 - `telecomInsights.*.source` indicates whether each signal came from SDK or direct provider API.
-- `telecomInsights.registration` is extracted from provider payload fields when available. If the upstream provider does not return owner/subscriber identity data, these fields will be `null`.
 
 ### Logs
 
@@ -262,3 +212,10 @@ curl -X POST http://localhost:4000/api/check-number-risk \
   -H "x-api-key: trustscore-demo-key" \
   -d '{"phoneNumber":"+27712345678"}'
 ```
+
+## Free Hosting
+
+Use the free deployment runbook in [../DEPLOYMENT_FREE.md](../DEPLOYMENT_FREE.md):
+
+- Backend on Render (free)
+- Frontend on Vercel (free)
